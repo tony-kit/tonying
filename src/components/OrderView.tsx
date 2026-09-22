@@ -238,18 +238,18 @@ export const OrderView: React.FC<Props> = ({
       {/* Prominent Shop Delivery Notice Banner */}
       <div
         id="shop-delivery-schedule-banner"
-        className="bg-amber-50 border-2 border-amber-400 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 flex items-center gap-3 shadow-xs text-amber-950"
+        className="bg-red-600 border-2 border-red-700 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 shadow-md"
       >
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-200/80 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/20 flex items-center justify-center text-2xl sm:text-3xl shrink-0 shadow-inner">
           🚚
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-red-700 bg-white px-2.5 py-0.5 rounded-md shadow-xs">
               รอบวันจัดส่งร้านค้า
             </span>
           </div>
-          <p className="text-xs sm:text-sm font-black text-amber-950 mt-0.5">
+          <p className="text-sm sm:text-base md:text-lg font-black text-white leading-snug drop-shadow-xs">
             {STORE_DELIVERY_NOTICE}
           </p>
         </div>
@@ -838,9 +838,12 @@ export const OrderView: React.FC<Props> = ({
                   </span>
                 </div>
 
-                <div className="bg-amber-50 rounded-xl p-2.5 text-[11px] text-amber-900 border border-amber-200 flex items-center gap-2">
-                  <span className="shrink-0 text-sm">🚚</span>
-                  <span className="font-bold">{STORE_DELIVERY_NOTICE}</span>
+                <div className="bg-red-600 text-white rounded-xl p-3 text-xs sm:text-sm border border-red-700 flex items-center gap-2.5 shadow-xs">
+                  <span className="shrink-0 text-base sm:text-lg">🚚</span>
+                  <div className="min-w-0">
+                    <span className="font-black bg-white text-red-700 px-1.5 py-0.5 rounded text-[10px] sm:text-xs mr-1.5 uppercase shadow-2xs">รอบจัดส่ง</span>
+                    <span className="font-black text-white text-xs sm:text-sm">{STORE_DELIVERY_NOTICE}</span>
+                  </div>
                 </div>
               </div>
 

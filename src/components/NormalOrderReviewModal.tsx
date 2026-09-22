@@ -322,11 +322,15 @@ export const NormalOrderReviewModal: React.FC<Props> = ({
               {activeTab === 'table' ? (
                 <div className="space-y-4">
                   {/* Shop Delivery Schedule Notice Banner */}
-                  <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-3.5 text-xs sm:text-sm text-amber-950 flex items-center gap-3 shadow-2xs">
-                    <span className="text-xl sm:text-2xl shrink-0">🚚</span>
-                    <div>
-                      <div className="font-black text-amber-900">แจ้งรอบจัดส่งร้านค้า:</div>
-                      <div className="font-bold text-amber-800">{STORE_DELIVERY_NOTICE}</div>
+                  <div className="bg-red-600 border-2 border-red-700 rounded-2xl p-4 text-white flex items-center gap-3.5 shadow-md">
+                    <span className="text-2xl sm:text-3xl shrink-0">🚚</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="inline-block bg-white text-red-700 text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-md mb-1 shadow-xs uppercase tracking-wide">
+                        รอบวันจัดส่งร้านค้า
+                      </div>
+                      <div className="text-sm sm:text-base font-black text-white leading-snug drop-shadow-xs">
+                        {STORE_DELIVERY_NOTICE}
+                      </div>
                     </div>
                   </div>
 

@@ -335,18 +335,18 @@ export const CartView: React.FC<Props> = ({
       {/* Prominent Shop Delivery Notice Card */}
       <div
         id="cart-delivery-schedule-banner"
-        className="bg-amber-50 border-2 border-amber-400 rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 shadow-sm text-amber-950"
+        className="bg-red-600 border-2 border-red-700 text-white rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 shadow-md"
       >
-        <div className="w-12 h-12 rounded-2xl bg-amber-200/80 flex items-center justify-center text-2xl shrink-0">
+        <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl sm:text-3xl shrink-0 shadow-inner">
           🚚
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase font-black tracking-wider text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">
-              ข้อความสำคัญถึงร้านค้า / ซัพพลายเออร์
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-red-700 bg-white px-2.5 py-0.5 rounded-md shadow-xs">
+              รอบวันจัดส่งร้านค้า
             </span>
           </div>
-          <p className="text-sm sm:text-base font-black text-amber-950 mt-1">
+          <p className="text-sm sm:text-base md:text-lg font-black text-white leading-snug drop-shadow-xs">
             {STORE_DELIVERY_NOTICE}
           </p>
         </div>
