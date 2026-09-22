@@ -1,0 +1,6 @@
+{
+  "name": "Tony's Kitchen — Ingredient Order",
+  "description": "Local-first restaurant ingredient ordering app with IndexedDB storage, Thai language UI, LINE order text generation, and dedicated drink order visual image export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
