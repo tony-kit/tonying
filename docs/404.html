@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tony's Kitchen</title>
+    <script>
+      // Single Page App redirect for GitHub Pages
+      // Redirects 404 paths back to the root entry point
+      var pathSegments = location.pathname.split('/');
+      // If deployed at https://<username>.github.io/<repo-name>/
+      // Redirect to the repository root
+      var repoSegment = pathSegments.length > 2 ? '/' + pathSegments[1] + '/' : '/';
+      location.replace(repoSegment);
+    </script>
+  </head>
+  <body>
+    <p>กำลังนำทางกลับสู่หน้าหลัก Tony's Kitchen...</p>
+  </body>
+</html>
