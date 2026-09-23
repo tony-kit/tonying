@@ -62,7 +62,9 @@ export const SettingsView: React.FC<Props> = ({
   const [branchNote, setBranchNote] = useState(settings.branchNote || '');
   const [lineSupplierNote, setLineSupplierNote] = useState(settings.lineSupplierNote || '');
   const [drinkLineTargetName, setDrinkLineTargetName] = useState(settings.drinkLineTargetName || 'สั่งโค้กTony');
-  const [drinkLineGroupLink, setDrinkLineGroupLink] = useState(settings.drinkLineGroupLink || '');
+  const [drinkLineGroupLink, setDrinkLineGroupLink] = useState(
+    settings.drinkLineGroupLink || 'https://line.me/R/ti/g/RB55pEzZJp'
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);

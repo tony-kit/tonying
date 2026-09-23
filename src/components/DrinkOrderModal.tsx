@@ -51,10 +51,14 @@ export const DrinkOrderModal: React.FC<Props> = ({
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [copiedImageSuccess, setCopiedImageSuccess] = useState(false);
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [tempGroupLink, setTempGroupLink] = useState(settings.drinkLineGroupLink || '');
-  const [isSavingLink, setIsSavingLink] = useState(false);
-
+  const DEFAULT_COKE_LINE_LINK = 'https://line.me/R/ti/g/RB55pEzZJp';
   const targetRoomName = settings.drinkLineTargetName || 'สั่งโค้กTony';
+  const activeGroupLink = (settings.drinkLineGroupLink && settings.drinkLineGroupLink.trim())
+    ? settings.drinkLineGroupLink.trim()
+    : DEFAULT_COKE_LINE_LINK;
+
+  const [tempGroupLink, setTempGroupLink] = useState(activeGroupLink);
+  const [isSavingLink, setIsSavingLink] = useState(false);
 
   const drinkSubtotal = useMemo(() => {
     return drinkItems.reduce((acc, item) => acc + (item.lineTotal || item.quantity * item.product.price), 0);
@@ -75,7 +79,7 @@ export const DrinkOrderModal: React.FC<Props> = ({
       setImageResult(null);
       setShareStatus(null);
       setCopiedImageSuccess(false);
-      setTempGroupLink(settings.drinkLineGroupLink || '');
+      setTempGroupLink(activeGroupLink);
 
       generateDrinkOrderImage(drinkItems, settings)
         .then((res) => {
@@ -115,12 +119,19 @@ export const DrinkOrderModal: React.FC<Props> = ({
     setIsSavingLink(true);
     try {
       await onSaveSettings({ drinkLineGroupLink: tempGroupLink.trim() });
-      setShowLinkInput(false);
+      setShareStatus(`บันทึกลิงก์ห้อง "${targetRoomName}" เรียบร้อยแล้ว!`);
     } catch (err) {
       console.error('Save group link failed:', err);
     } finally {
       setIsSavingLink(false);
     }
+  };
+
+  const handleClearGroupLink = async () => {
+    if (!onSaveSettings) return;
+    setTempGroupLink('');
+    await onSaveSettings({ drinkLineGroupLink: '' });
+    setShareStatus('ลบลบลิงก์ห้องเรียบร้อยแล้ว');
   };
 
   const handleConfirmAndShare = async () => {
@@ -136,44 +147,15 @@ export const DrinkOrderModal: React.FC<Props> = ({
       // Continue even if clipboard is restricted
     }
 
-    // 2. If group link is provided, directly open that specific room in LINE
-    if (settings.drinkLineGroupLink && settings.drinkLineGroupLink.trim()) {
-      onDrinkOrderConfirmed(imageResult);
-      openLineApp(settings.drinkLineGroupLink.trim());
-      setShareStatus(
-        copied
-          ? `คัดลอกรูปภาพแล้ว & กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE! (กดที่ช่องแชทแล้วแตะ "วาง / Paste" เพื่อส่งภาพได้เลย)`
-          : `กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE!`
-      );
-      setIsSharing(false);
-      return;
-    }
-
-    // 3. Otherwise, use Web Share API with image file
-    try {
-      const { method, success } = await shareDrinkOrderImage(
-        imageResult,
-        `สั่งเครื่องดื่ม - ${settings.storeName}`
-      );
-
-      if (success) {
-        onDrinkOrderConfirmed(imageResult);
-        if (method === 'share') {
-          setShareStatus(`เปิดหน้าต่างแชร์เรียบร้อย ➔ แตะเลือก LINE แล้วส่งเข้าห้อง "${targetRoomName}" ได้ทันที`);
-        } else {
-          setShareStatus(`บันทึกรูปภาพลงเครื่องแล้ว ➔ กำลังเปิดแอป LINE เพื่อส่งเข้าห้อง "${targetRoomName}"`);
-          openLineApp();
-        }
-      }
-    } catch (err) {
-      console.error('Share action failed:', err);
-      downloadImageFallback(imageResult.dataUrl, imageResult.fileName);
-      onDrinkOrderConfirmed(imageResult);
-      setShareStatus(`บันทึกรูปภาพแล้ว ➔ กำลังเปิดแอป LINE เพื่อส่งเข้าห้อง "${targetRoomName}"`);
-      openLineApp();
-    } finally {
-      setTimeout(() => setIsSharing(false), 800);
-    }
+    // 2. Open the specific room in LINE directly using activeGroupLink
+    onDrinkOrderConfirmed(imageResult);
+    openLineApp(activeGroupLink);
+    setShareStatus(
+      copied
+        ? `คัดลอกรูปภาพแล้ว & กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE! (กดที่ช่องแชทแล้วแตะ "วาง / Paste" เพื่อส่งภาพได้ทันที)`
+        : `กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE!`
+    );
+    setIsSharing(false);
   };
 
   const handleOpenDirectLine = () => {
@@ -181,8 +163,8 @@ export const DrinkOrderModal: React.FC<Props> = ({
       copyImageToClipboard(imageResult.blob);
       onDrinkOrderConfirmed(imageResult);
     }
-    openLineApp(settings.drinkLineGroupLink);
-    setShareStatus(`กำลังเปิดแอป LINE ไปที่ห้อง "${targetRoomName}"`);
+    openLineApp(activeGroupLink);
+    setShareStatus(`กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE`);
   };
 
   const handleDownloadOnly = () => {
@@ -253,39 +235,39 @@ export const DrinkOrderModal: React.FC<Props> = ({
           ) : imageResult ? (
             <div className="w-full flex flex-col items-center space-y-4">
               
-              {/* LINE Target Room Banner */}
-              <div className="w-full bg-[#06C755]/10 border-2 border-[#06C755]/30 rounded-2xl p-3.5 flex flex-col gap-2 shadow-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#06C755] text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0">
+              {/* Prominent LINE Target Room & Direct Link Card */}
+              <div className="w-full bg-white border-2 border-[#06C755] rounded-3xl p-4 sm:p-5 shadow-md space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#06C755] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
                       LINE
                     </div>
                     <div>
-                      <div className="text-[11px] text-gray-500 font-bold">ห้องแชท LINE ปลายทาง</div>
-                      <div className="text-sm sm:text-base font-black text-[#141414] flex items-center gap-1.5">
+                      <div className="text-[11px] text-gray-500 font-bold">ห้องแชท LINE สั่งเครื่องดื่ม</div>
+                      <div className="text-base sm:text-lg font-black text-[#141414] flex items-center gap-2">
                         <span>{targetRoomName}</span>
-                        <span className="px-2 py-0.5 rounded-md bg-[#06C755] text-white text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-[#06C755]/15 text-[#06C755] text-[10px] font-black">
                           ตัวแทนโค้ก
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleManualCopyImage}
-                      className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-[#141414] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      className="px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-xs font-bold text-[#141414] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
                       title="คัดลอกรูปภาพเพื่อนำไปวางใน LINE"
                     >
                       {copiedImageSuccess ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-700">คัดลอกแล้ว</span>
+                          <Check className="w-4 h-4 text-emerald-600" />
+                          <span className="text-emerald-700">คัดลอกรูปแล้ว</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5 text-gray-500" />
+                          <Copy className="w-4 h-4 text-gray-600" />
                           <span>คัดลอกรูป</span>
                         </>
                       )}
@@ -294,59 +276,65 @@ export const DrinkOrderModal: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={handleOpenDirectLine}
-                      className="px-3 py-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink className="w-4 h-4" />
                       <span>เปิด LINE</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Optional Quick Link input helper */}
-                {settings.drinkLineGroupLink ? (
-                  <div className="text-[11px] text-emerald-700 flex items-center gap-1 pt-1 border-t border-[#06C755]/15 font-medium">
-                    <Check className="w-3.5 h-3.5 text-[#06C755]" />
-                    <span>เชื่อมต่อลิงก์ห้อง &quot;{targetRoomName}&quot; เรียบร้อยแล้ว (กดส่งภาพจะเปิดเข้าห้องนี้ทันที)</span>
-                  </div>
-                ) : (
-                  <div className="pt-1 border-t border-[#06C755]/15">
-                    {!showLinkInput ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowLinkInput(true)}
-                        className="text-[11px] text-[#06C755] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                      >
-                        <LinkIcon className="w-3 h-3" />
-                        <span>💡 ใส่ลิงก์กลุ่ม เพื่อให้กดส่งแล้วเด้งเข้าห้อง &quot;{targetRoomName}&quot; ทันที</span>
-                      </button>
+                {/* Always-Visible LINE Group Link Input Form */}
+                <div className="bg-[#06C755]/5 rounded-2xl p-3 sm:p-3.5 border border-[#06C755]/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#141414] flex items-center gap-1.5">
+                      <LinkIcon className="w-3.5 h-3.5 text-[#06C755]" />
+                      <span>ลิงก์ห้อง &quot;{targetRoomName}&quot; (สำหรับกดแล้วเด้งเข้าห้องทันที):</span>
+                    </label>
+                    {activeGroupLink ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3 text-[#06C755]" />
+                        <span>เชื่อมต่อห้อง &quot;{targetRoomName}&quot; แล้ว</span>
+                      </span>
                     ) : (
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={tempGroupLink}
-                          onChange={(e) => setTempGroupLink(e.target.value)}
-                          placeholder="วางลิงก์เชิญกลุ่ม LINE (https://line.me/ti/g/...)"
-                          className="flex-1 px-3 py-1.5 bg-white border border-[#06C755]/40 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#06C755]"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSaveGroupLinkQuick}
-                          disabled={isSavingLink}
-                          className="px-3 py-1.5 bg-[#06C755] text-white rounded-xl text-xs font-bold hover:bg-[#05b34c] shrink-0"
-                        >
-                          บันทึก
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowLinkInput(false)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 text-xs"
-                        >
-                          ยกเลิก
-                        </button>
-                      </div>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                        ยังไม่ได้ใส่ลิงก์
+                      </span>
                     )}
                   </div>
-                )}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tempGroupLink}
+                      onChange={(e) => setTempGroupLink(e.target.value)}
+                      placeholder="วางลิงก์เชิญกลุ่ม LINE ที่นี่ (https://line.me/ti/g/...)"
+                      className="flex-1 px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#06C755] text-[#141414]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveGroupLinkQuick}
+                      disabled={isSavingLink || tempGroupLink.trim() === (settings.drinkLineGroupLink || '')}
+                      className="px-4 py-2 bg-[#06C755] hover:bg-[#05b34c] active:bg-[#04943f] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+                    >
+                      {isSavingLink ? 'กำลังบันทึก...' : 'บันทึก'}
+                    </button>
+                    {settings.drinkLineGroupLink && (
+                      <button
+                        type="button"
+                        onClick={handleClearGroupLink}
+                        className="px-2.5 py-2 text-gray-400 hover:text-red-500 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                        title="ลบลบลิงก์"
+                      >
+                        ลบ
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    💡 <strong>วิธีนำลิงก์กลุ่มมาใส่:</strong> ใน LINE เปิดห้อง <strong>&quot;{targetRoomName}&quot;</strong> &gt; กดเมนู 3 ขีดบนขวา &gt; กด <strong>&quot;เชิญ (Invite)&quot;</strong> &gt; เลือก <strong>&quot;แชร์ลิงก์ (Share via link)&quot;</strong> &gt; นำมาวางที่ช่องด้านบนนี้แล้วกด &quot;บันทึก&quot;
+                  </p>
+                </div>
               </div>
 
               {/* Graphic Preview */}

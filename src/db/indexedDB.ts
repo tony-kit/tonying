@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   currencySymbol: '฿',
   lineSupplierNote: 'กรุณาส่งวัตถุดิบตามรายการด้านล่าง ขอบคุณครับ/ค่ะ',
   drinkLineTargetName: 'สั่งโค้กTony',
-  drinkLineGroupLink: '',
+  drinkLineGroupLink: 'https://line.me/R/ti/g/RB55pEzZJp',
   updatedAt: Date.now(),
 };
 
@@ -709,7 +709,7 @@ export async function getSettings(): Promise<AppSettings> {
               currencySymbol: req.result.currencySymbol || '฿',
               lineSupplierNote: req.result.lineSupplierNote || DEFAULT_SETTINGS.lineSupplierNote,
               drinkLineTargetName: req.result.drinkLineTargetName || DEFAULT_SETTINGS.drinkLineTargetName,
-              drinkLineGroupLink: req.result.drinkLineGroupLink || '',
+              drinkLineGroupLink: req.result.drinkLineGroupLink || DEFAULT_SETTINGS.drinkLineGroupLink,
               updatedAt: req.result.updatedAt || Date.now(),
             });
           } else {
