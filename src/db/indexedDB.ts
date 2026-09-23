@@ -23,6 +23,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   logoDataUrl: null,
   currencySymbol: '฿',
   lineSupplierNote: 'กรุณาส่งวัตถุดิบตามรายการด้านล่าง ขอบคุณครับ/ค่ะ',
+  drinkLineTargetName: 'สั่งโค้กTony',
+  drinkLineGroupLink: '',
   updatedAt: Date.now(),
 };
 
@@ -706,6 +708,8 @@ export async function getSettings(): Promise<AppSettings> {
               logoDataUrl: req.result.logoDataUrl || null,
               currencySymbol: req.result.currencySymbol || '฿',
               lineSupplierNote: req.result.lineSupplierNote || DEFAULT_SETTINGS.lineSupplierNote,
+              drinkLineTargetName: req.result.drinkLineTargetName || DEFAULT_SETTINGS.drinkLineTargetName,
+              drinkLineGroupLink: req.result.drinkLineGroupLink || '',
               updatedAt: req.result.updatedAt || Date.now(),
             });
           } else {
@@ -997,6 +1001,8 @@ export function parseAndValidateBackup(raw: any): { backupData: FullAppBackup; s
       logoDataUrl: typeof raw.settings.logoDataUrl === 'string' ? raw.settings.logoDataUrl : null,
       currencySymbol: typeof raw.settings.currencySymbol === 'string' ? raw.settings.currencySymbol : '฿',
       lineSupplierNote: typeof raw.settings.lineSupplierNote === 'string' ? raw.settings.lineSupplierNote : '',
+      drinkLineTargetName: typeof raw.settings.drinkLineTargetName === 'string' ? raw.settings.drinkLineTargetName : DEFAULT_SETTINGS.drinkLineTargetName,
+      drinkLineGroupLink: typeof raw.settings.drinkLineGroupLink === 'string' ? raw.settings.drinkLineGroupLink : '',
       updatedAt: typeof raw.settings.updatedAt === 'number' ? raw.settings.updatedAt : Date.now(),
     };
   }

@@ -282,6 +282,34 @@ export async function shareDrinkOrderImage(
 }
 
 /**
+ * Copy image blob to clipboard if supported
+ */
+export async function copyImageToClipboard(blob: Blob): Promise<boolean> {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Clipboard image copy not supported or failed:', err);
+  }
+  return false;
+}
+
+/**
+ * Open LINE application directly to target group or default scheme
+ */
+export function openLineApp(groupLink?: string): void {
+  const target = groupLink && groupLink.trim() ? groupLink.trim() : 'line://';
+  try {
+    window.location.href = target;
+  } catch (e) {
+    window.open(target, '_blank');
+  }
+}
+
+/**
  * Force browser to download image
  */
 export function downloadImageFallback(dataUrl: string, fileName: string): void {

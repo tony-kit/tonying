@@ -61,6 +61,8 @@ export const SettingsView: React.FC<Props> = ({
   const [storeName, setStoreName] = useState(settings.storeName || "Tony's Kitchen");
   const [branchNote, setBranchNote] = useState(settings.branchNote || '');
   const [lineSupplierNote, setLineSupplierNote] = useState(settings.lineSupplierNote || '');
+  const [drinkLineTargetName, setDrinkLineTargetName] = useState(settings.drinkLineTargetName || 'สั่งโค้กTony');
+  const [drinkLineGroupLink, setDrinkLineGroupLink] = useState(settings.drinkLineGroupLink || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
@@ -109,6 +111,8 @@ export const SettingsView: React.FC<Props> = ({
         storeName: storeName.trim() || "Tony's Kitchen",
         branchNote: branchNote.trim(),
         lineSupplierNote: lineSupplierNote.trim(),
+        drinkLineTargetName: drinkLineTargetName.trim() || 'สั่งโค้กTony',
+        drinkLineGroupLink: drinkLineGroupLink.trim(),
       });
       onShowToast('success', 'บันทึกข้อมูลร้านค้าเรียบร้อยแล้ว', 'สำเร็จ');
     } catch (err) {
@@ -373,6 +377,51 @@ export const SettingsView: React.FC<Props> = ({
               placeholder="เช่น กรุณาส่งของก่อน 10:00 น. ขอบคุณครับ/ค่ะ"
               className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#F27D26] focus:bg-white text-[#141414]"
             />
+          </div>
+
+          {/* Drink Orders Specific LINE Target Configuration */}
+          <div className="pt-4 border-t border-gray-100 space-y-3 bg-[#06C755]/5 p-4 rounded-2xl border border-[#06C755]/20">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-[#06C755] text-white flex items-center justify-center text-xs font-black">
+                L
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-[#141414]">ห้อง LINE สำหรับส่งใบสั่งเครื่องดื่ม</h4>
+                <p className="text-[11px] text-gray-500">กำหนดห้องแชทและลิงก์สำหรับส่งภาพไปยังตัวแทนเครื่องดื่ม</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                ชื่อห้องแชท LINE ปลายทาง
+              </label>
+              <input
+                type="text"
+                value={drinkLineTargetName}
+                onChange={(e) => setDrinkLineTargetName(e.target.value)}
+                placeholder="เช่น สั่งโค้กTony"
+                className="w-full px-4 py-2.5 rounded-2xl bg-white border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#06C755] text-[#141414]"
+              />
+              <p className="text-[11px] text-gray-500 mt-1">
+                เช่น &quot;สั่งโค้กTony&quot; ระบบจะแสดงชื่อห้องนี้ให้ผู้สั่งเห็นชัดเจนเวลาแชร์
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                ลิงก์เชิญกลุ่ม LINE (Group Invite Link หรือ LINE ID)
+              </label>
+              <input
+                type="text"
+                value={drinkLineGroupLink}
+                onChange={(e) => setDrinkLineGroupLink(e.target.value)}
+                placeholder="เช่น https://line.me/ti/g/... หรือ line://ti/p/@coke"
+                className="w-full px-4 py-2.5 rounded-2xl bg-white border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#06C755] text-[#141414]"
+              />
+              <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+                💡 <strong>วิธีนำลิงก์กลุ่มมาใส่:</strong> ในแอป LINE เปิดห้องแชท &quot;สั่งโค้กTony&quot; &gt; กดเมนู 3 ขีดขวาบน &gt; เลือก <strong>&quot;เชิญ (Invite)&quot;</strong> &gt; เลือก <strong>&quot;ลิงก์ (Share via link)&quot;</strong> &gt; คัดลอกลิงก์มาวางที่นี่ เมื่อกดส่งภาพ ระบบจะเด้งเปิดเข้าห้อง &quot;สั่งโค้กTony&quot; ให้โดยตรงทันที!
+              </p>
+            </div>
           </div>
 
           <button

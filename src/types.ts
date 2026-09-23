@@ -86,6 +86,8 @@ export interface AppSettings {
   logoDataUrl: string | null;
   currencySymbol: string;
   lineSupplierNote: string;
+  drinkLineTargetName?: string;
+  drinkLineGroupLink?: string;
   updatedAt: number;
 }
 

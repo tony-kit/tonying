@@ -6,6 +6,8 @@ import {
   shareDrinkOrderImage,
   DrinkOrderImageResult,
   downloadImageFallback,
+  copyImageToClipboard,
+  openLineApp,
 } from '../utils/drinkImageGenerator';
 import {
   X,
@@ -18,6 +20,9 @@ import {
   AlertCircle,
   Sparkles,
   ReceiptText,
+  ExternalLink,
+  Copy,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 interface Props {
@@ -27,6 +32,7 @@ interface Props {
   settings: AppSettings;
   onDrinkOrderConfirmed: (imageResult: DrinkOrderImageResult) => void;
   onFinishOrder: () => void;
+  onSaveSettings?: (newSettings: Partial<AppSettings>) => Promise<void>;
 }
 
 export const DrinkOrderModal: React.FC<Props> = ({
@@ -36,11 +42,19 @@ export const DrinkOrderModal: React.FC<Props> = ({
   settings,
   onDrinkOrderConfirmed,
   onFinishOrder,
+  onSaveSettings,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageResult, setImageResult] = useState<DrinkOrderImageResult | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [isCopyingImage, setIsCopyingImage] = useState(false);
+  const [copiedImageSuccess, setCopiedImageSuccess] = useState(false);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [tempGroupLink, setTempGroupLink] = useState(settings.drinkLineGroupLink || '');
+  const [isSavingLink, setIsSavingLink] = useState(false);
+
+  const targetRoomName = settings.drinkLineTargetName || 'สั่งโค้กTony';
 
   const drinkSubtotal = useMemo(() => {
     return drinkItems.reduce((acc, item) => acc + (item.lineTotal || item.quantity * item.product.price), 0);
@@ -60,6 +74,8 @@ export const DrinkOrderModal: React.FC<Props> = ({
       setIsGenerating(true);
       setImageResult(null);
       setShareStatus(null);
+      setCopiedImageSuccess(false);
+      setTempGroupLink(settings.drinkLineGroupLink || '');
 
       generateDrinkOrderImage(drinkItems, settings)
         .then((res) => {
@@ -83,10 +99,57 @@ export const DrinkOrderModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+  const handleManualCopyImage = async () => {
+    if (!imageResult) return;
+    setIsCopyingImage(true);
+    const ok = await copyImageToClipboard(imageResult.blob);
+    setIsCopyingImage(false);
+    if (ok) {
+      setCopiedImageSuccess(true);
+      setTimeout(() => setCopiedImageSuccess(false), 3000);
+    }
+  };
+
+  const handleSaveGroupLinkQuick = async () => {
+    if (!onSaveSettings) return;
+    setIsSavingLink(true);
+    try {
+      await onSaveSettings({ drinkLineGroupLink: tempGroupLink.trim() });
+      setShowLinkInput(false);
+    } catch (err) {
+      console.error('Save group link failed:', err);
+    } finally {
+      setIsSavingLink(false);
+    }
+  };
+
   const handleConfirmAndShare = async () => {
     if (!imageResult || isSharing) return;
     setIsSharing(true);
 
+    // 1. Always attempt to copy image to clipboard
+    let copied = false;
+    try {
+      copied = await copyImageToClipboard(imageResult.blob);
+      if (copied) setCopiedImageSuccess(true);
+    } catch {
+      // Continue even if clipboard is restricted
+    }
+
+    // 2. If group link is provided, directly open that specific room in LINE
+    if (settings.drinkLineGroupLink && settings.drinkLineGroupLink.trim()) {
+      onDrinkOrderConfirmed(imageResult);
+      openLineApp(settings.drinkLineGroupLink.trim());
+      setShareStatus(
+        copied
+          ? `คัดลอกรูปภาพแล้ว & กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE! (กดที่ช่องแชทแล้วแตะ "วาง / Paste" เพื่อส่งภาพได้เลย)`
+          : `กำลังเปิดเข้าห้อง "${targetRoomName}" ใน LINE!`
+      );
+      setIsSharing(false);
+      return;
+    }
+
+    // 3. Otherwise, use Web Share API with image file
     try {
       const { method, success } = await shareDrinkOrderImage(
         imageResult,
@@ -96,20 +159,30 @@ export const DrinkOrderModal: React.FC<Props> = ({
       if (success) {
         onDrinkOrderConfirmed(imageResult);
         if (method === 'share') {
-          setShareStatus('เปิดหน้าต่างแชร์เรียบร้อย (เลือก LINE หรือแอปที่ต้องการ)');
+          setShareStatus(`เปิดหน้าต่างแชร์เรียบร้อย ➔ แตะเลือก LINE แล้วส่งเข้าห้อง "${targetRoomName}" ได้ทันที`);
         } else {
-          setShareStatus('บันทึกรูปภาพลงเครื่องเรียบร้อยแล้ว กรุณาส่งภาพเข้า LINE ด้วยตนเอง');
+          setShareStatus(`บันทึกรูปภาพลงเครื่องแล้ว ➔ กำลังเปิดแอป LINE เพื่อส่งเข้าห้อง "${targetRoomName}"`);
+          openLineApp();
         }
       }
     } catch (err) {
       console.error('Share action failed:', err);
-      // Direct download fallback
       downloadImageFallback(imageResult.dataUrl, imageResult.fileName);
       onDrinkOrderConfirmed(imageResult);
-      setShareStatus('ดาวน์โหลดรูปภาพลงเครื่องแล้ว');
+      setShareStatus(`บันทึกรูปภาพแล้ว ➔ กำลังเปิดแอป LINE เพื่อส่งเข้าห้อง "${targetRoomName}"`);
+      openLineApp();
     } finally {
       setTimeout(() => setIsSharing(false), 800);
     }
+  };
+
+  const handleOpenDirectLine = () => {
+    if (imageResult) {
+      copyImageToClipboard(imageResult.blob);
+      onDrinkOrderConfirmed(imageResult);
+    }
+    openLineApp(settings.drinkLineGroupLink);
+    setShareStatus(`กำลังเปิดแอป LINE ไปที่ห้อง "${targetRoomName}"`);
   };
 
   const handleDownloadOnly = () => {
@@ -143,37 +216,140 @@ export const DrinkOrderModal: React.FC<Props> = ({
         className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Modal Header */}
-        <div className="bg-[#F27D26] text-white p-5 sm:p-6 flex items-center justify-between shrink-0">
+        <div className="bg-[#06C755] text-white p-5 sm:p-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0">
               <Wine className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold">ใบสั่งเครื่องดื่มพิเศษ (ภาพกราฟิก)</h2>
-              <p className="text-xs text-orange-100 mt-0.5">
-                ไม่มีราคา • มีเฉพาะรูปภาพ ชื่อ และจำนวน สำหรับส่งให้ตัวแทนเครื่องดื่ม
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold">ใบสั่งเครื่องดื่มพิเศษ</h2>
+                <span className="px-2 py-0.5 rounded-full bg-white/25 text-white font-black text-[11px]">
+                  LINE: {targetRoomName}
+                </span>
+              </div>
+              <p className="text-xs text-white/90 mt-0.5">
+                มีเฉพาะรูปภาพและจำนวน • ส่งตรงเข้าห้องแชท &quot;{targetRoomName}&quot;
               </p>
             </div>
           </div>
           <button
             id="close-drink-modal-btn"
             onClick={handleCloseHeader}
-            className="p-1.5 text-orange-100 hover:text-white rounded-xl transition-colors"
+            className="p-1.5 text-white/80 hover:text-white rounded-xl transition-colors cursor-pointer"
             aria-label="ปิดหน้าต่าง"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body: Image Preview */}
+        {/* Modal Body: Image Preview & Target Guide */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 bg-gray-50/70 flex flex-col items-center justify-center">
           {isGenerating ? (
             <div className="py-16 flex flex-col items-center text-gray-500 gap-3">
-              <Loader2 className="w-8 h-8 text-[#F27D26] animate-spin" />
+              <Loader2 className="w-8 h-8 text-[#06C755] animate-spin" />
               <p className="text-sm font-bold text-[#141414]">กำลังสร้างภาพใบสั่งเครื่องดื่มคุณภาพสูง...</p>
             </div>
           ) : imageResult ? (
             <div className="w-full flex flex-col items-center space-y-4">
+              
+              {/* LINE Target Room Banner */}
+              <div className="w-full bg-[#06C755]/10 border-2 border-[#06C755]/30 rounded-2xl p-3.5 flex flex-col gap-2 shadow-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[#06C755] text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0">
+                      LINE
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-gray-500 font-bold">ห้องแชท LINE ปลายทาง</div>
+                      <div className="text-sm sm:text-base font-black text-[#141414] flex items-center gap-1.5">
+                        <span>{targetRoomName}</span>
+                        <span className="px-2 py-0.5 rounded-md bg-[#06C755] text-white text-[10px] font-bold">
+                          ตัวแทนโค้ก
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleManualCopyImage}
+                      className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-[#141414] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      title="คัดลอกรูปภาพเพื่อนำไปวางใน LINE"
+                    >
+                      {copiedImageSuccess ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700">คัดลอกแล้ว</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-gray-500" />
+                          <span>คัดลอกรูป</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenDirectLine}
+                      className="px-3 py-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>เปิด LINE</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional Quick Link input helper */}
+                {settings.drinkLineGroupLink ? (
+                  <div className="text-[11px] text-emerald-700 flex items-center gap-1 pt-1 border-t border-[#06C755]/15 font-medium">
+                    <Check className="w-3.5 h-3.5 text-[#06C755]" />
+                    <span>เชื่อมต่อลิงก์ห้อง &quot;{targetRoomName}&quot; เรียบร้อยแล้ว (กดส่งภาพจะเปิดเข้าห้องนี้ทันที)</span>
+                  </div>
+                ) : (
+                  <div className="pt-1 border-t border-[#06C755]/15">
+                    {!showLinkInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowLinkInput(true)}
+                        className="text-[11px] text-[#06C755] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <LinkIcon className="w-3 h-3" />
+                        <span>💡 ใส่ลิงก์กลุ่ม เพื่อให้กดส่งแล้วเด้งเข้าห้อง &quot;{targetRoomName}&quot; ทันที</span>
+                      </button>
+                    ) : (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={tempGroupLink}
+                          onChange={(e) => setTempGroupLink(e.target.value)}
+                          placeholder="วางลิงก์เชิญกลุ่ม LINE (https://line.me/ti/g/...)"
+                          className="flex-1 px-3 py-1.5 bg-white border border-[#06C755]/40 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#06C755]"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveGroupLinkQuick}
+                          disabled={isSavingLink}
+                          className="px-3 py-1.5 bg-[#06C755] text-white rounded-xl text-xs font-bold hover:bg-[#05b34c] shrink-0"
+                        >
+                          บันทึก
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowLinkInput(false)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 text-xs"
+                        >
+                          ยกเลิก
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Graphic Preview */}
               <div className="bg-white p-2.5 rounded-2xl shadow-md border border-gray-200 max-w-sm sm:max-w-md w-full overflow-hidden">
                 <img
                   src={imageResult.dataUrl}
@@ -183,9 +359,9 @@ export const DrinkOrderModal: React.FC<Props> = ({
               </div>
 
               {shareStatus && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 font-bold shadow-2xs">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{shareStatus}</span>
+                <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs px-4 py-3 rounded-2xl flex items-start gap-2 font-bold shadow-xs animate-in fade-in">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{shareStatus}</span>
                 </div>
               )}
 
@@ -205,7 +381,7 @@ export const DrinkOrderModal: React.FC<Props> = ({
               {/* Store Owner Price Breakdown Reference (with VAT 7%) */}
               <div className="w-full bg-white border border-gray-200/90 rounded-2xl p-4 space-y-2.5 text-xs shadow-xs">
                 <div className="flex items-center gap-2 font-bold text-[#141414] pb-1 border-b border-gray-100">
-                  <ReceiptText className="w-4 h-4 text-[#F27D26]" />
+                  <ReceiptText className="w-4 h-4 text-[#06C755]" />
                   <span>สรุปยอดค่าใช้จ่ายหมวดเครื่องดื่ม (รวม VAT 7%)</span>
                 </div>
                 <div className="flex justify-between text-gray-600 font-medium">
@@ -214,18 +390,18 @@ export const DrinkOrderModal: React.FC<Props> = ({
                 </div>
                 <div className="flex justify-between text-gray-600 font-medium">
                   <span>ภาษีมูลค่าเพิ่ม VAT 7%:</span>
-                  <span className="font-bold text-[#F27D26]">+฿{formatCurrency(drinkVat)}</span>
+                  <span className="font-bold text-[#06C755]">+฿{formatCurrency(drinkVat)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-100 text-sm">
                   <span className="font-black text-[#141414]">ราคาสุดท้าย (รวมภาษี VAT 7%):</span>
-                  <span className="font-black text-[#F27D26] text-base">฿{formatCurrency(grandTotal)}</span>
+                  <span className="font-black text-[#06C755] text-base">฿{formatCurrency(grandTotal)}</span>
                 </div>
               </div>
 
-              <div className="w-full bg-orange-50 border border-orange-200/80 rounded-2xl p-4 text-xs text-[#141414] flex items-start gap-2.5 shadow-2xs">
-                <Sparkles className="w-4 h-4 text-[#F27D26] shrink-0 mt-0.5" />
+              <div className="w-full bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 text-xs text-[#141414] flex items-start gap-2.5 shadow-2xs">
+                <Sparkles className="w-4 h-4 text-[#06C755] shrink-0 mt-0.5" />
                 <p className="font-medium text-gray-700 leading-relaxed">
-                  ภาพกราฟิกนี้ตัดข้อมูลราคาออกทั้งหมด พร้อมระบุรอบวันจัดส่งชัดเจน ตัวแทนส่งเครื่องดื่มสามารถตรวจสอบขนาดขวด/กระป๋องจากภาพสินค้าและจัดส่งได้ถูกต้องทันที
+                  ภาพกราฟิกนี้ตัดข้อมูลราคาออกทั้งหมด มีเฉพาะรูปขวด/กระป๋อง ชื่อ และจำนวน พร้อมระบุรอบจัดส่งชัดเจน ส่งให้ตัวแทนส่งเครื่องดื่มในห้อง <strong>&quot;{targetRoomName}&quot;</strong> เพื่อจัดของได้ถูกต้องทันที
                 </p>
               </div>
             </div>
@@ -243,7 +419,7 @@ export const DrinkOrderModal: React.FC<Props> = ({
             id="drink-modal-back-btn"
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>แก้ไขรายการ</span>
@@ -256,7 +432,7 @@ export const DrinkOrderModal: React.FC<Props> = ({
                 type="button"
                 onClick={handleDownloadOnly}
                 disabled={!imageResult || isGenerating}
-                className="px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-[#141414] font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                className="px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-[#141414] font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                 title="บันทึกรูปลงเครื่อง"
               >
                 <Download className="w-4 h-4" />
@@ -267,7 +443,7 @@ export const DrinkOrderModal: React.FC<Props> = ({
                 id="drink-modal-finish-btn"
                 type="button"
                 onClick={handleFinish}
-                className="w-full sm:w-auto flex-1 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm sm:text-base shadow-md transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto flex-1 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm sm:text-base shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>เสร็จสิ้น</span>
@@ -292,17 +468,17 @@ export const DrinkOrderModal: React.FC<Props> = ({
                 type="button"
                 onClick={handleConfirmAndShare}
                 disabled={!imageResult || isGenerating || isSharing}
-                className="w-full sm:w-auto flex-1 px-6 py-3 rounded-2xl bg-[#F27D26] hover:bg-[#d96614] active:bg-orange-800 text-white font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full sm:w-auto flex-1 px-6 py-3 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] active:bg-[#04943f] text-white font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isSharing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>กำลังเปิดหน้าแชร์...</span>
+                    <span>กำลังเปิด LINE...</span>
                   </>
                 ) : (
                   <>
                     <Share2 className="w-4 h-4" />
-                    <span>ยืนยันและแชร์ภาพ (LINE)</span>
+                    <span>ส่งภาพไป LINE (ห้อง {targetRoomName})</span>
                   </>
                 )}
               </button>

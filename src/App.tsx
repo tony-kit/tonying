@@ -876,6 +876,7 @@ export default function App() {
         settings={settings}
         onDrinkOrderConfirmed={handleDrinkOrderConfirmed}
         onFinishOrder={clearCurrentOrder}
+        onSaveSettings={handleSaveSettings}
       />
     </div>
   );
