@@ -54,12 +54,21 @@ export async function generateDrinkOrderImage(
   drinkItems: CartItem[],
   settings: AppSettings
 ): Promise<DrinkOrderImageResult> {
+  // Ensure fonts are ready before drawing on canvas
+  try {
+    if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) {
+    // Continue even if document.fonts is unsupported
+  }
+
   const dpr = 2; // Retina scale
   const width = 640;
   const padding = 32;
-  const noticeHeight = 48;
-  const headerHeight = 190;
-  const rowHeight = 110;
+  const noticeHeight = 54;
+  const headerHeight = 196;
+  const rowHeight = 114;
   const footerHeight = 70;
   const contentHeight = headerHeight + drinkItems.length * rowHeight + footerHeight;
 
@@ -95,6 +104,7 @@ export async function generateDrinkOrderImage(
   ctx.fillStyle = '#0F172A';
   ctx.font = 'bold 22px "Prompt", -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.fillText(settings.storeName || "TONY'S KITCHEN", padding + 20, 54);
 
   // Drink Order Subtitle
@@ -109,19 +119,20 @@ export async function generateDrinkOrderImage(
   ctx.fillText(formatThaiDateTime(), width - padding - 20, 54);
   ctx.fillText(`${drinkItems.length} รายการ`, width - padding - 20, 80);
 
-  // Prominent Delivery Notice Box (High Contrast Badge)
+  // Prominent Holiday / Delivery Notice Box (Bold Red Background & White Large Text)
   const noticeY = 124;
-  ctx.fillStyle = '#FEF3C7'; // Warm amber
-  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 12);
+  ctx.fillStyle = '#DC2626'; // Eye-catching vibrant red
+  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 14);
   ctx.fill();
-  ctx.strokeStyle = '#F59E0B'; // Amber border
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#B91C1C'; // Deep red border
+  ctx.lineWidth = 2;
   ctx.stroke();
 
-  ctx.fillStyle = '#92400E'; // High-contrast amber text
-  ctx.font = 'bold 14px "Prompt", -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#FFFFFF'; // High-contrast crisp white text
+  ctx.font = 'bold 16px "Prompt", -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`🚚 ${STORE_DELIVERY_NOTICE}`, width / 2, noticeY + 29);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`🚚 ${STORE_DELIVERY_NOTICE}`, width / 2, noticeY + noticeHeight / 2 + 1);
 
   // Pre-load all product images
   const loadedImages = await Promise.all(
@@ -135,7 +146,7 @@ export async function generateDrinkOrderImage(
     const item = drinkItems[i];
     const img = loadedImages[i];
     const cardY = currentY;
-    const cardHeight = rowHeight - 12;
+    const cardHeight = rowHeight - 12; // 102px
 
     // Card background
     ctx.fillStyle = '#FFFFFF';
@@ -147,8 +158,8 @@ export async function generateDrinkOrderImage(
 
     // Product Thumbnail Box
     const thumbX = padding + 14;
-    const thumbY = cardY + 12;
-    const thumbSize = 74;
+    const thumbSize = 76;
+    const thumbY = cardY + (cardHeight - thumbSize) / 2;
 
     ctx.save();
     roundRect(ctx, thumbX, thumbY, thumbSize, thumbSize, 10);
@@ -168,9 +179,10 @@ export async function generateDrinkOrderImage(
       ctx.fillStyle = '#FED7AA';
       ctx.fillRect(thumbX, thumbY, thumbSize, thumbSize);
       ctx.fillStyle = '#EA580C';
-      ctx.font = 'bold 24px sans-serif';
+      ctx.font = 'bold 26px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🥤', thumbX + thumbSize / 2, thumbY + 46);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🥤', thumbX + thumbSize / 2, thumbY + thumbSize / 2);
     }
     ctx.restore();
 
@@ -180,14 +192,40 @@ export async function generateDrinkOrderImage(
     roundRect(ctx, thumbX, thumbY, thumbSize, thumbSize, 10);
     ctx.stroke();
 
-    // Product Name (with product code if present)
-    const textX = thumbX + thumbSize + 16;
-    ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 18px "Prompt", -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textAlign = 'left';
+    // Quantity Badge (High contrast, clearly legible)
+    const badgeW = 116;
+    const badgeH = 48;
+    const badgeX = width - padding - badgeW - 14;
+    const badgeY = cardY + (cardHeight - badgeH) / 2;
 
-    // Wrap product name if too long
-    const maxNameWidth = width - textX - padding - 130;
+    ctx.fillStyle = '#FFF7ED'; // Subtle orange tint
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 12);
+    ctx.fill();
+    ctx.strokeStyle = '#FDBA74';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#C2410C'; // Dark rich orange
+    ctx.font = 'bold 24px "Prompt", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${item.quantity}`, badgeX + badgeW / 2 - 16, badgeY + badgeH / 2);
+
+    ctx.fillStyle = '#9A3412';
+    ctx.font = 'bold 15px "Prompt", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${item.product.unit}`, badgeX + badgeW / 2 + 6, badgeY + badgeH / 2);
+
+    // Product Name (Larger font size for high visibility)
+    const textX = thumbX + thumbSize + 16;
+    ctx.fillStyle = '#0F172A'; // High-contrast deep slate
+    ctx.font = 'bold 22px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    // Wrap product name if too long to prevent overlapping with quantity badge
+    const maxNameWidth = badgeX - textX - 14;
     const codePart = item.product.productCode?.trim() ? ` [${item.product.productCode.trim()}]` : '';
     let displayName = `${item.product.name}${codePart}`;
     if (ctx.measureText(displayName).width > maxNameWidth) {
@@ -196,30 +234,7 @@ export async function generateDrinkOrderImage(
       }
       displayName += '...';
     }
-    ctx.fillText(displayName, textX, cardY + 42);
-
-    // Quantity Badge (High contrast, clearly legible)
-    const badgeW = 120;
-    const badgeH = 46;
-    const badgeX = width - padding - badgeW - 14;
-    const badgeY = cardY + (cardHeight - badgeH) / 2;
-
-    ctx.fillStyle = '#FFF7ED'; // Subtle orange tint
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 10);
-    ctx.fill();
-    ctx.strokeStyle = '#FDBA74';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.fillStyle = '#C2410C'; // Dark rich orange
-    ctx.font = 'bold 22px "Prompt", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${item.quantity}`, badgeX + badgeW / 2 - 16, badgeY + 30);
-
-    ctx.fillStyle = '#9A3412';
-    ctx.font = '600 14px "Prompt", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`${item.product.unit}`, badgeX + badgeW / 2 + 6, badgeY + 29);
+    ctx.fillText(displayName, textX, cardY + cardHeight / 2);
 
     currentY += rowHeight;
   }
@@ -228,6 +243,7 @@ export async function generateDrinkOrderImage(
   ctx.fillStyle = '#94A3B8';
   ctx.font = '13px "Prompt", sans-serif';
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillText(`⚡ Tony's Kitchen — สั่งเครื่องดื่มสำหรับจัดส่ง`, width / 2, contentHeight - 28);
 
   // Export DataURL & Blob
