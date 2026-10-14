@@ -68,7 +68,7 @@ export async function generateDrinkOrderImage(
   const padding = 32;
   const headerHeight = 128;
   const rowHeight = 114;
-  const noticeHeight = 68;
+  const noticeHeight = 96;
   const footerHeight = 44;
   const contentHeight = headerHeight + drinkItems.length * rowHeight + noticeHeight + footerHeight + 12;
 
@@ -224,20 +224,28 @@ export async function generateDrinkOrderImage(
     currentY += rowHeight;
   }
 
-  // Prominent Holiday Notice Card at the VERY BOTTOM (Bold Red Background & Extra Large White Text)
+  // Prominent Holiday Notice Card at the VERY BOTTOM (Bold Red Background & 100% Larger White Text)
   const noticeY = currentY + 8;
   ctx.fillStyle = '#DC2626'; // Vibrant striking red
-  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 16);
+  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 18);
   ctx.fill();
   ctx.strokeStyle = '#B91C1C'; // Deep red border
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 3;
   ctx.stroke();
 
   ctx.fillStyle = '#FFFFFF'; // Crisp white text
-  ctx.font = 'bold 30px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif';
+  // Target +100% larger text size (from 30px to 60px) with auto-fitting check
+  const noticeText = '❗ ร้านปิดวันอังคาร ❗';
+  const maxNoticeWidth = (width - padding * 2) - 24;
+  let noticeFontSize = 60; // 100% larger than 30px
+  ctx.font = `bold ${noticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
+  while (noticeFontSize > 36 && ctx.measureText(noticeText).width > maxNoticeWidth) {
+    noticeFontSize -= 2;
+    ctx.font = `bold ${noticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('❗ ร้านปิดวันอังคาร ❗', width / 2, noticeY + noticeHeight / 2);
+  ctx.fillText(noticeText, width / 2, noticeY + noticeHeight / 2);
 
   // Footer / Watermark
   ctx.fillStyle = '#94A3B8';
