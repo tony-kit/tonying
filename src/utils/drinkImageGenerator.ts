@@ -1,4 +1,4 @@
-import { CartItem, AppSettings, STORE_DELIVERY_NOTICE } from '../types';
+import { CartItem, AppSettings } from '../types';
 import { formatThaiDateTime } from './orderFormatter';
 
 export interface DrinkOrderImageResult {
@@ -66,11 +66,11 @@ export async function generateDrinkOrderImage(
   const dpr = 2; // Retina scale
   const width = 640;
   const padding = 32;
-  const noticeHeight = 54;
-  const headerHeight = 196;
+  const headerHeight = 128;
   const rowHeight = 114;
-  const footerHeight = 70;
-  const contentHeight = headerHeight + drinkItems.length * rowHeight + footerHeight;
+  const noticeHeight = 68;
+  const footerHeight = 44;
+  const contentHeight = headerHeight + drinkItems.length * rowHeight + noticeHeight + footerHeight + 12;
 
   const canvas = document.createElement('canvas');
   canvas.width = width * dpr;
@@ -118,21 +118,6 @@ export async function generateDrinkOrderImage(
   ctx.textAlign = 'right';
   ctx.fillText(formatThaiDateTime(), width - padding - 20, 54);
   ctx.fillText(`${drinkItems.length} รายการ`, width - padding - 20, 80);
-
-  // Prominent Holiday / Delivery Notice Box (Bold Red Background & White Large Text)
-  const noticeY = 124;
-  ctx.fillStyle = '#DC2626'; // Eye-catching vibrant red
-  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 14);
-  ctx.fill();
-  ctx.strokeStyle = '#B91C1C'; // Deep red border
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = '#FFFFFF'; // High-contrast crisp white text
-  ctx.font = 'bold 16px "Prompt", -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(`🚚 ${STORE_DELIVERY_NOTICE}`, width / 2, noticeY + noticeHeight / 2 + 1);
 
   // Pre-load all product images
   const loadedImages = await Promise.all(
@@ -239,12 +224,27 @@ export async function generateDrinkOrderImage(
     currentY += rowHeight;
   }
 
+  // Prominent Holiday Notice Card at the VERY BOTTOM (Bold Red Background & Extra Large White Text)
+  const noticeY = currentY + 8;
+  ctx.fillStyle = '#DC2626'; // Vibrant striking red
+  roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 16);
+  ctx.fill();
+  ctx.strokeStyle = '#B91C1C'; // Deep red border
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFFFFF'; // Crisp white text
+  ctx.font = 'bold 30px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('❗ ร้านปิดวันอังคาร ❗', width / 2, noticeY + noticeHeight / 2);
+
   // Footer / Watermark
   ctx.fillStyle = '#94A3B8';
   ctx.font = '13px "Prompt", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`⚡ Tony's Kitchen — สั่งเครื่องดื่มสำหรับจัดส่ง`, width / 2, contentHeight - 28);
+  ctx.fillText(`⚡ Tony's Kitchen — สั่งเครื่องดื่มสำหรับจัดส่ง`, width / 2, noticeY + noticeHeight + 24);
 
   // Export DataURL & Blob
   const dataUrl = canvas.toDataURL('image/png', 0.95);
