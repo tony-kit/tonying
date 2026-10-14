@@ -68,7 +68,7 @@ export async function generateDrinkOrderImage(
   const padding = 32;
   const headerHeight = 128;
   const rowHeight = 114;
-  const noticeHeight = 96;
+  const noticeHeight = 116;
   const footerHeight = 44;
   const contentHeight = headerHeight + drinkItems.length * rowHeight + noticeHeight + footerHeight + 12;
 
@@ -224,7 +224,7 @@ export async function generateDrinkOrderImage(
     currentY += rowHeight;
   }
 
-  // Prominent Holiday Notice Card at the VERY BOTTOM (Bold Red Background & 100% Larger White Text)
+  // Prominent Holiday Notice Card at the VERY BOTTOM (Bold Red Background, Large Headline & Subtext)
   const noticeY = currentY + 8;
   ctx.fillStyle = '#DC2626'; // Vibrant striking red
   roundRect(ctx, padding, noticeY, width - padding * 2, noticeHeight, 18);
@@ -233,19 +233,30 @@ export async function generateDrinkOrderImage(
   ctx.lineWidth = 3;
   ctx.stroke();
 
+  const maxNoticeWidth = (width - padding * 2) - 28;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillStyle = '#FFFFFF'; // Crisp white text
-  // Target +100% larger text size (from 30px to 60px) with auto-fitting check
+
+  // 1. Main Notice Headline (Large Bold Text)
   const noticeText = '❗ ร้านปิดวันอังคาร ❗';
-  const maxNoticeWidth = (width - padding * 2) - 24;
-  let noticeFontSize = 60; // 100% larger than 30px
+  let noticeFontSize = 50; // Extra large bold headline
   ctx.font = `bold ${noticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
-  while (noticeFontSize > 36 && ctx.measureText(noticeText).width > maxNoticeWidth) {
+  while (noticeFontSize > 32 && ctx.measureText(noticeText).width > maxNoticeWidth) {
     noticeFontSize -= 2;
     ctx.font = `bold ${noticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
   }
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(noticeText, width / 2, noticeY + noticeHeight / 2);
+  ctx.fillText(noticeText, width / 2, noticeY + 42);
+
+  // 2. Secondary Subtext (Small clear text directly below headline in the same card)
+  const subNoticeText = 'กรุณาส่งสินค้าในวัน พุธ - จันทร์ ขอบคุณครับ';
+  let subNoticeFontSize = 21; // Small, readable text
+  ctx.font = `600 ${subNoticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
+  while (subNoticeFontSize > 14 && ctx.measureText(subNoticeText).width > maxNoticeWidth) {
+    subNoticeFontSize -= 1;
+    ctx.font = `600 ${subNoticeFontSize}px "Prompt", -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif`;
+  }
+  ctx.fillText(subNoticeText, width / 2, noticeY + 85);
 
   // Footer / Watermark
   ctx.fillStyle = '#94A3B8';
